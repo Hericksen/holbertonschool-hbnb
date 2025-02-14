@@ -304,3 +304,10 @@ The Infrastructure Layer ensures reliable application performance.
 6. Conclusion
 
 This document consolidates the fundamental design and implementation guidelines for the HBnB project. It provides a structured and detailed reference for developers to ensure a consistent and efficient development process.
+
+
+Authors:
+
+- Martin Gwendal [@Hericksen](https://github.com/Hericksen)
+- Moinet Hamza [@HamzaMoinet](https://www.github.com/HamzaMoinet)
+- Bouvier Guillaume [@BvrGuillaume](https://www.github.com/BvrGuillaume)
