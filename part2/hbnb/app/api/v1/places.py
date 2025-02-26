@@ -1,20 +1,19 @@
 from flask_restx import Namespace, Resource, fields
 from app.services import facade
 
-api = Namespace('places', description='Opérations sur les lieux')
+api = Namespace('places', description='Place operations')
 
-# Modèle pour afficher une amenity (si nécessaire)
-amenity_model = api.model('Amenity', {
-    'id': fields.String(description='ID de l\'équipement'),
-    'name': fields.String(description='Nom de l\'équipement')
+# Define the models for related entities
+amenity_model = api.model('PlaceAmenity', {
+    'id': fields.String(description='Amenity ID'),
+    'name': fields.String(description='Name of the amenity')
 })
 
-# Modèle pour afficher un owner (utilisateur)
-user_model = api.model('User', {
-    'id': fields.String(description='ID de l\'utilisateur'),
-    'first_name': fields.String(description='Prénom'),
-    'last_name': fields.String(description='Nom'),
-    'email': fields.String(description='Email')
+user_model = api.model('PlaceUser', {
+    'id': fields.String(description='User ID'),
+    'first_name': fields.String(description='First name of the owner'),
+    'last_name': fields.String(description='Last name of the owner'),
+    'email': fields.String(description='Email of the owner')
 })
 
 # Adding the review model
@@ -25,7 +24,7 @@ review_model = api.model('PlaceReview', {
     'user_id': fields.String(description='ID of the user')
 })
 
-# Modèle pour la validation des données d'un lieu
+# Define the place model for input validation and documentation
 place_model = api.model('Place', {
     'title': fields.String(required=True, description='Title of the place'),
     'description': fields.String(description='Description of the place'),
@@ -38,48 +37,37 @@ place_model = api.model('Place', {
     'reviews': fields.List(fields.Nested(review_model), description='List of reviews')
 })
 
+
 @api.route('/')
 class PlaceList(Resource):
-    @api.expect(place_model, validate=True)
-    @api.response(201, 'Lieu créé avec succès')
-    @api.response(400, 'Données invalides')
+    @api.expect(place_model)
+    @api.response(201, 'Place successfully created')
+    @api.response(400, 'Invalid input data')
     def post(self):
-        """Enregistrer un nouveau lieu"""
-        place_data = api.payload
-        try:
-            place = facade.create_place(place_data)
-            return place.to_dict(), 201
-        except ValueError as e:
-            return {"message": str(e)}, 400
+        """Register a new place"""
+        # Placeholder for the logic to register a new place
+        pass
 
-    @api.response(200, 'Liste des lieux récupérée avec succès')
+    @api.response(200, 'List of places retrieved successfully')
     def get(self):
-        """Récupérer la liste de tous les lieux"""
-        places = facade.get_all_places()
-        return [p.to_dict() for p in places], 200
+        """Retrieve a list of all places"""
+        # Placeholder for logic to return a list of all places
+        pass
 
-@api.route('/<string:place_id>')
+@api.route('/<place_id>')
 class PlaceResource(Resource):
-    @api.response(200, 'Détails du lieu récupérés avec succès')
-    @api.response(404, 'Lieu non trouvé')
+    @api.response(200, 'Place details retrieved successfully')
+    @api.response(404, 'Place not found')
     def get(self, place_id):
-        """Récupérer les détails d'un lieu par son ID, incluant propriétaire et équipements"""
-        place = facade.get_place(place_id)
-        if not place:
-            return {"message": "Lieu non trouvé"}, 404
-        return place.to_dict(), 200
+        """Get place details by ID"""
+        # Placeholder for the logic to retrieve a place by ID, including associated owner and amenities
+        pass
 
-    @api.expect(place_model, validate=True)
-    @api.response(200, 'Lieu mis à jour avec succès')
-    @api.response(404, 'Lieu non trouvé')
-    @api.response(400, 'Données invalides')
+    @api.expect(place_model)
+    @api.response(200, 'Place updated successfully')
+    @api.response(404, 'Place not found')
+    @api.response(400, 'Invalid input data')
     def put(self, place_id):
-        """Mettre à jour les informations d'un lieu"""
-        place_data = api.payload
-        try:
-            updated_place = facade.update_place(place_id, place_data)
-            if not updated_place:
-                return {"message": "Lieu non trouvé"}, 404
-            return updated_place.to_dict(), 200
-        except ValueError as e:
-            return {"message": str(e)}, 400
+        """Update a place's information"""
+        # Placeholder for the logic to update a place by ID
+        pass
