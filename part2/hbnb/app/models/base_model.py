@@ -20,7 +20,3 @@ class BaseModel:
             if hasattr(self, key):
                 setattr(self, key, value)
         self.save()  # Mise à jour du timestamp
-
-    def delete(self):
-        """Suppression de l'objet"""
-        del self # Suppression total de l'objet

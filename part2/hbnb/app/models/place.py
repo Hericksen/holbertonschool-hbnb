@@ -1,4 +1,4 @@
-from part2.hbnb.app.models.base_model import BaseModel
+from base_model import BaseModel
 
 
 class Place(BaseModel):
@@ -34,3 +34,5 @@ class Place(BaseModel):
         if not (-180.0 <= lon <= 180.0):
             raise ValueError("Longitude invalide (-180 à 180).")
         return lon
+    def add_review(self, review):
+        return review
