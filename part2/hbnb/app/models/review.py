@@ -1,5 +1,6 @@
-from part2.hbnb.app.models.base_model import BaseModel
-
+from base_model import BaseModel
+from user import User
+from place import Place
 
 class Review(BaseModel):
     """Représente un avis sur un logement."""
