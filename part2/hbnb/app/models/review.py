@@ -1,6 +1,5 @@
 from base_model import BaseModel
-from user import User
-from place import Place
+
 
 class Review(BaseModel):
     """Représente un avis sur un logement."""
