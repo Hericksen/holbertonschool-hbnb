@@ -1,15 +1,11 @@
+# app/models/amenity.py
+
 from base_model import BaseModel
 
-
 class Amenity(BaseModel):
-    """Représente un service proposé (ex : Wi-Fi, Parking)."""
-
     def __init__(self, name):
         super().__init__()
-        self.name = self.validate_name(name)
+        self.name = name
 
-    def validate_name(self, name):
-        if len(name) > 50:
-            raise ValueError(
-                "Le nom de l’amenity ne peut pas dépasser 50 caractères.")
-        return name
+    def __str__(self):
+        return f"Amenity({self.id}, {self.name})"

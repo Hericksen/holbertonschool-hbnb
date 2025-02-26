@@ -1,22 +1,19 @@
 import uuid
 from datetime import datetime
 
-
 class BaseModel:
-    """Classe de base pour gérer l'identifiant unique et les timestamps."""
-
     def __init__(self):
-        self.id = str(uuid.uuid4())  # Génère un UUID unique
+        self.id = str(uuid.uuid4())  # UUID pour un identifiant unique
         self.created_at = datetime.now()
-        self.updated_at = datetime.now()
+        self.updated_at = self.created_at
 
     def save(self):
-        """Met à jour la date de modification."""
+        """Met à jour le timestamp updated_at lorsque l'objet est modifié"""
         self.updated_at = datetime.now()
 
     def update(self, data):
-        """Mise à jour des attributs à partir d’un dictionnaire."""
+        """Met à jour les attributs de l'objet en fonction des nouvelles valeurs"""
         for key, value in data.items():
             if hasattr(self, key):
                 setattr(self, key, value)
-        self.save()  # Mise à jour du timestamp
+        self.save()  # Mise à jour du timestamp updated_at
