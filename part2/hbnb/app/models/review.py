@@ -1,22 +1,14 @@
+# app/models/review.py
+
 from base_model import BaseModel
 
-
 class Review(BaseModel):
-    """Représente un avis sur un logement."""
-
     def __init__(self, text, rating, place, user):
         super().__init__()
-        self.text = self.validate_text(text)
-        self.rating = self.validate_rating(rating)
-        self.place = place
-        self.user = user
+        self.text = text
+        self.rating = rating
+        self.place = place  # Instance de la classe Place
+        self.user = user  # Instance de la classe User
 
-    def validate_text(self, text):
-        if not text:
-            raise ValueError("Le texte de l'avis est obligatoire.")
-        return text
-
-    def validate_rating(self, rating):
-        if rating < 1 or rating > 5:
-            raise ValueError("La note doit être entre 1 et 5.")
-        return rating
+    def __str__(self):
+        return f"Review({self.id}, {self.rating}, {self.text})"
