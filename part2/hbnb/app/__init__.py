@@ -7,6 +7,7 @@ from app.api.v1.reviews import api as reviews_ns
 import uuid
 
 def create_app():
+    print(uuid.uuid4())
     app = Flask(__name__)
     api = Api(app, version='1.0', title='HBnB API', description='HBnB Application API')
     api.add_namespace(users_ns, path='/api/v1/users')
