@@ -1,12 +1,14 @@
-from app.models.review import Review
+from app.models.user import User
 from app.models.place import Place
+from app.models.amenity import Amenity
 from app.persistence.repository import InMemoryRepository
 
 class HBnBFacade:
     def __init__(self):
         self.user_repo = InMemoryRepository()
         self.place_repo = InMemoryRepository()
-        # (D'autres dépôts pour Review, Amenity pourront être ajoutés plus tard)
+        self.amenities = []
+        self.next_amenity_id = 1
 
     # --- Opérations sur les utilisateurs ---
     def create_user(self, user_data):
@@ -37,8 +39,6 @@ class HBnBFacade:
         if not owner:
             raise ValueError("Propriétaire non trouvé.")
 
-        # Créer le lieu en important le modèle Place localement pour éviter les problèmes d'import circulaire
-        from app.models.place import Place  # Import local
         place = Place(
             title=place_data.get('title'),
             description=place_data.get('description', ''),
@@ -61,17 +61,12 @@ class HBnBFacade:
         place = self.place_repo.get(place_id)
         if not place:
             return None
-        # Validation si de nouveaux attributs sont fournis
-        if 'price' in place_data:
-            if place_data['price'] < 0:
-                raise ValueError("Le prix doit être positif ou nul.")
-        if 'latitude' in place_data:
-            if not (-90 <= place_data['latitude'] <= 90):
-                raise ValueError("La latitude doit être comprise entre -90 et 90.")
-        if 'longitude' in place_data:
-            if not (-180 <= place_data['longitude'] <= 180):
-                raise ValueError("La longitude doit être comprise entre -180 et 180.")
-        # Si l'identifiant du propriétaire est mis à jour, vérifiez-le et remplacez-le par l'objet owner
+        if 'price' in place_data and place_data['price'] < 0:
+            raise ValueError("Le prix doit être positif ou nul.")
+        if 'latitude' in place_data and not (-90 <= place_data['latitude'] <= 90):
+            raise ValueError("La latitude doit être comprise entre -90 et 90.")
+        if 'longitude' in place_data and not (-180 <= place_data['longitude'] <= 180):
+            raise ValueError("La longitude doit être comprise entre -180 et 180.")
         if 'owner_id' in place_data:
             owner = self.user_repo.get(place_data['owner_id'])
             if not owner:
@@ -80,3 +75,30 @@ class HBnBFacade:
             del place_data['owner_id']
         place.update(place_data)
         return place
+
+    # --- Opérations sur les commodités ---
+    def create_amenity(self, amenity_data):
+        amenity = {"id": self.next_amenity_id, **amenity_data}
+        self.amenities.append(amenity)
+        self.next_amenity_id += 1
+        return amenity
+
+    def get_amenity(self, amenity_id):
+        return next((a for a in self.amenities if a["id"] == amenity_id), None)
+
+    def get_all_amenities(self):
+        return self.amenities
+
+    def update_amenity(self, amenity_id, amenity_data):
+        for amenity in self.amenities:
+            if amenity["id"] == amenity_id:
+                amenity.update(amenity_data)
+                return amenity
+        return None
+
+    def delete_amenity(self, amenity_id):
+        for amenity in self.amenities:
+            if amenity["id"] == amenity_id:
+                self.amenities.remove(amenity)
+                return True
+        return False
