@@ -78,20 +78,26 @@ class HBnBFacade:
 
     # --- Opérations sur les commodités ---
     def create_amenity(self, amenity_data):
-        amenity = {"id": self.next_amenity_id, **amenity_data}
+        amenity = Amenity(name=amenity_data["name"])
         self.amenities.append(amenity)
-        self.next_amenity_id += 1
         return amenity
 
+
     def get_amenity(self, amenity_id):
-        return next((a for a in self.amenities if a["id"] == amenity_id), None)
+        return next((a for a in self.amenities if a.id == amenity_id), None)
+
+
+
 
     def get_all_amenities(self):
-        return self.amenities
+        return [a for a in self.amenities]
+
+
+
 
     def update_amenity(self, amenity_id, amenity_data):
         for amenity in self.amenities:
-            if amenity["id"] == amenity_id:
+            if amenity["id"] == amenity_id:  # Comparaison avec UUID (chaine)
                 amenity.update(amenity_data)
                 return amenity
         return None

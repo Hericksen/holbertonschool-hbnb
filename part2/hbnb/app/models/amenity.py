@@ -1,4 +1,4 @@
-from part2.hbnb.app.models.base_model import BaseModel
+from app.models.base_model import BaseModel
 
 from app.models.base_model import BaseModel
 
