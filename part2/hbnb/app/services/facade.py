@@ -1,6 +1,9 @@
+# app/services/facade.py
+
 from app.models.user import User
 from app.models.place import Place
 from app.models.amenity import Amenity
+from app.models.review import Review
 from app.persistence.repository import InMemoryRepository
 
 class HBnBFacade:
@@ -62,12 +65,6 @@ class HBnBFacade:
             raise ValueError("Place not found.")
         return place
 
-    def get_place(self, place_id):
-        place = self.place_repo.get(place_id)
-        if not place:
-            raise ValueError('Place not found')
-        return place
-
     def get_all_places(self):
         return self.place_repo.get_all()
 
@@ -89,38 +86,65 @@ class HBnBFacade:
         place.owner = new_owner
         data.pop("owner_id")
 
-
         place.update(data)
         self.place_repo.add(place)
         return place
 
+    # --- Opérations sur les avis (reviews) ---
+    
+    def create_review(self, review_data):
+        required = ["text", "rating", "user_id", "place_id"]
+        for field in required:
+            if field not in review_data:
+                raise ValueError(f"Missing required field: {field}")
 
+        if not (1 <= review_data["rating"] <= 5):
+            raise ValueError("Rating must be between 1 and 5.")
 
+        user = self.user_repo.get(review_data["user_id"])
+        if not user:
+            raise ValueError("User not found.")
+        place = self.place_repo.get(review_data["place_id"])
+        if not place:
+            raise ValueError("Place not found.")
 
-    def get_amenity(self, amenity_id):
-        return next((a for a in self.amenities if a.id == amenity_id), None)
+        review_obj = Review(
+            text=review_data["text"],
+            rating=review_data["rating"],
+            user=user,
+            place=place
+        )
+        self.review_repo.add(review_obj)
+        return review_obj
 
+    def get_review(self, review_id):
+        return self.review_repo.get(review_id)
 
+    def get_all_reviews(self):
+        return self.review_repo.get_all()
 
+    def get_reviews_by_place(self, place_id):
+        all_reviews = self.review_repo.get_all()
+        return [r for r in all_reviews if r.place.id == place_id]
 
-    def get_all_amenities(self):
-        return [a for a in self.amenities]
+    def update_review(self, review_id, data):
+        review = self.review_repo.get(review_id)
+        if not review:
+            return None
 
+        if "text" in data:
+            review.text = data["text"]
+    
+        if "rating" in data:
+            if not (1 <= data["rating"] <= 5):
+                raise ValueError("Rating must be between 1 and 5.")
+        review.rating = data["rating"]
 
+        self.review_repo.add(review)
+        return review
 
-
-    def update_amenity(self, amenity_id, amenity_data):
-        amenity = self.amenities_repo.get(amenity_id)
-        if amenity["id"] == amenity_id:  # Comparaison avec UUID (chaine)
-               amenity.update(amenity_data)
-               return amenity
-        if not amenity:
-               return None
-
-    def delete_amenity(self, amenity_id):
-        amenity = self.amenities_repo.delete(amenity_id)
-        if amenity["id"] == amenity_id:
-            self.amenities.remove(amenity)
-            return True
-        if not amenity:
-            return False
+    def delete_review(self, review_id):
+        review = self.review_repo.get(review_id)
+        if not review:
+            return None
+        return self.review_repo.delete(review_id)
