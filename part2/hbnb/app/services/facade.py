@@ -1,17 +1,17 @@
 # app/services/facade.py
 
-from app.models.user import User
-from app.models.place import Place
-from app.models.amenity import Amenity
-from app.models.review import Review
 from app.persistence.repository import InMemoryRepository
+from app.models.user import User
+from app.models.amenity import Amenity
+from app.models.place import Place
+from app.models.review import Review
 
 class HBnBFacade:
     def __init__(self):
         self.user_repo = InMemoryRepository()
         self.place_repo = InMemoryRepository()
-        self.amenities_repo = InMemoryRepository()
         self.review_repo = InMemoryRepository()
+        self.amenity_repo = InMemoryRepository()
 
     # --- Opérations sur les utilisateurs ---
     def create_user(self, user_data):
@@ -148,3 +148,26 @@ class HBnBFacade:
         if not review:
             return None
         return self.review_repo.delete(review_id)
+    
+    def create_amenity(self, amenity_data):
+        name = amenity_data.get("name", "")
+        if not name or len(name) > 50:
+            raise ValueError(
+                "Invalid 'name': must be non-empty and ≤ 50 characters.")
+        amenity_obj = Amenity(name=name)
+        self.amenity_repo.add(amenity_obj)
+        return amenity_obj
+
+    def get_amenity(self, amenity_id):
+        return self.amenity_repo.get(amenity_id)
+
+    def get_all_amenities(self):
+        return self.amenity_repo.get_all()
+
+    def update_amenity(self, amenity_id, data):
+        amenity = self.amenity_repo.get(amenity_id)
+        if not amenity:
+            return None
+        amenity.update(data)
+        self.amenity_repo.add(amenity)
+        return amenity
