@@ -7,8 +7,8 @@ class HBnBFacade:
     def __init__(self):
         self.user_repo = InMemoryRepository()
         self.place_repo = InMemoryRepository()
-        self.amenities = []
-        self.next_amenity_id = 1
+        self.amenities_repo = InMemoryRepository()
+        self.review_repo = InMemoryRepository()
 
     # --- Opérations sur les utilisateurs ---
     def create_user(self, user_data):
@@ -24,63 +24,77 @@ class HBnBFacade:
 
     # --- Opérations sur les lieux ---
     def create_place(self, place_data):
-        price = place_data.get('price')
-        latitude = place_data.get('latitude')
-        longitude = place_data.get('longitude')
-        if price < 0:
-            raise ValueError("Le prix doit être positif ou nul.")
-        if not (-90 <= latitude <= 90):
-            raise ValueError("La latitude doit être comprise entre -90 et 90.")
-        if not (-180 <= longitude <= 180):
-            raise ValueError("La longitude doit être comprise entre -180 et 180.")
+        if place_data["price"] < 0:
+            raise ValueError("Price must be a non-negative value.")
+        if not (-90 <= place_data["latitude"] <= 90):
+            raise ValueError("Latitude must be between -90 and 90.")
+        if not (-180 <= place_data["longitude"] <= 180):
+            raise ValueError("Longitude must be between -180 and 180.")
 
-        owner_id = place_data.get('owner_id')
-        owner = self.user_repo.get(owner_id)
+        owner = self.user_repo.get(place_data["owner_id"])
         if not owner:
-            raise ValueError("Propriétaire non trouvé.")
+            raise ValueError("Owner not found.")
 
-        place = Place(
-            title=place_data.get('title'),
-            description=place_data.get('description', ''),
-            price=price,
-            latitude=latitude,
-            longitude=longitude,
-            owner=owner,
-            amenities=place_data.get('amenities', [])
+        place_obj = Place(
+            title=place_data["title"],
+            description=place_data.get("description", ""),
+            price=place_data["price"],
+            latitude=place_data["latitude"],
+            longitude=place_data["longitude"],
+            owner=owner
         )
-        self.place_repo.add(place)
+        place_obj.amenities = [] if not hasattr(place_obj, "amenities") else place_obj.amenities
+
+        if "amenities" in place_data:
+            amenities = []
+            for amenity_id in place_data["amenities"]:
+                amenity_obj = self.amenity_repo.get(amenity_id)
+                if amenity_obj:
+                    amenities.append(amenity_obj)
+            place_obj.amenities = amenities
+
+        self.place_repo.add(place_obj)
+        return place_obj
+
+    def get_place(self, place_id):
+        place = self.place_repo.get(place_id)
+        if not place:
+            raise ValueError("Place not found.")
         return place
 
     def get_place(self, place_id):
-        return self.place_repo.get(place_id)
+        place = self.place_repo.get(place_id)
+        if not place:
+            raise ValueError('Place not found')
+        return place
 
     def get_all_places(self):
         return self.place_repo.get_all()
 
-    def update_place(self, place_id, place_data):
+    def update_place(self, place_id, data):
         place = self.place_repo.get(place_id)
         if not place:
             return None
-        if 'price' in place_data and place_data['price'] < 0:
-            raise ValueError("Le prix doit être positif ou nul.")
-        if 'latitude' in place_data and not (-90 <= place_data['latitude'] <= 90):
-            raise ValueError("La latitude doit être comprise entre -90 et 90.")
-        if 'longitude' in place_data and not (-180 <= place_data['longitude'] <= 180):
-            raise ValueError("La longitude doit être comprise entre -180 et 180.")
-        if 'owner_id' in place_data:
-            owner = self.user_repo.get(place_data['owner_id'])
-            if not owner:
-                raise ValueError("Propriétaire non trouvé.")
-            place_data['owner'] = owner
-            del place_data['owner_id']
-        place.update(place_data)
+        if "price" in data and data["price"] < 0:
+            raise ValueError("Price must be a non-negative value.")
+        if "latitude" in data and not (-90 <= data["latitude"] <= 90):
+            raise ValueError("Latitude must be between -90 and 90.")
+        if "longitude" in data and not (-180 <= data["longitude"] <= 180):
+            raise ValueError("Longitude must be between -180 and 180.")
+
+        if "owner_id" in data:
+            new_owner = self.user_repo.get(data["owner_id"])
+            if not new_owner:
+                raise ValueError("Owner not found.")
+        place.owner = new_owner
+        data.pop("owner_id")
+
+
+        place.update(data)
+        self.place_repo.add(place)
         return place
 
-    # --- Opérations sur les commodités ---
-    def create_amenity(self, amenity_data):
-        amenity = Amenity(name=amenity_data["name"])
-        self.amenities.append(amenity)
-        return amenity
+
 
 
     def get_amenity(self, amenity_id):
@@ -96,15 +110,17 @@ class HBnBFacade:
 
 
     def update_amenity(self, amenity_id, amenity_data):
-        for amenity in self.amenities:
-            if amenity["id"] == amenity_id:  # Comparaison avec UUID (chaine)
-                amenity.update(amenity_data)
-                return amenity
-        return None
+        amenity = self.amenities_repo.get(amenity_id)
+        if amenity["id"] == amenity_id:  # Comparaison avec UUID (chaine)
+               amenity.update(amenity_data)
+               return amenity
+        if not amenity:
+               return None
 
     def delete_amenity(self, amenity_id):
-        for amenity in self.amenities:
-            if amenity["id"] == amenity_id:
-                self.amenities.remove(amenity)
-                return True
-        return False
+        amenity = self.amenities_repo.delete(amenity_id)
+        if amenity["id"] == amenity_id:
+            self.amenities.remove(amenity)
+            return True
+        if not amenity:
+            return False

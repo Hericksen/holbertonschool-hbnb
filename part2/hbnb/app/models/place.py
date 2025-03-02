@@ -11,8 +11,6 @@ class Place(BaseModel):
         self.latitude = latitude
         self.longitude = longitude
         self.owner = owner  # Instance de la classe User
-        self.reviews = []  # Liste de reviews
-        self.amenities = []  # Liste d'amenités
 
     def add_review(self, review):
         """Ajoute un avis au lieu"""
