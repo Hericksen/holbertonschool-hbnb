@@ -1,7 +1,7 @@
 from flask_restx import Namespace, Resource, fields
 from flask import request
 from app.services import facade
-
+from app.models.place import Place
 
 api = Namespace('amenities', description='Amenity operations')
 
