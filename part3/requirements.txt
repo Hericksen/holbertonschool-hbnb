@@ -1,7 +1,4 @@
 flask
 flask-restx
 flask-bcrypt
-<<<<<<< HEAD
 flask-jwt-extended
-=======
->>>>>>> main
