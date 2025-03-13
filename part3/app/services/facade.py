@@ -15,9 +15,13 @@ class HBnBFacade:
 
     # --- Opérations sur les utilisateurs ---
     def create_user(self, user_data):
+        if self.user_repo.get_by_email(user_data["email"]):
+            raise ValueError("Email already registered.")
+
         user = User(**user_data)
         self.user_repo.add(user)
         return user
+
 
     def get_user(self, user_id):
         return self.user_repo.get(user_id)
@@ -91,7 +95,7 @@ class HBnBFacade:
         return place
 
     # --- Opérations sur les avis (reviews) ---
-    
+
     def create_review(self, review_data):
         required = ["text", "rating", "user_id", "place_id"]
         for field in required:
@@ -134,7 +138,7 @@ class HBnBFacade:
 
         if "text" in data:
             review.text = data["text"]
-    
+
         if "rating" in data:
             if not (1 <= data["rating"] <= 5):
                 raise ValueError("Rating must be between 1 and 5.")
@@ -148,7 +152,7 @@ class HBnBFacade:
         if not review:
             return None
         return self.review_repo.delete(review_id)
-    
+
     def create_amenity(self, amenity_data):
         name = amenity_data.get("name", "")
         if not name or len(name) > 50:
