@@ -6,6 +6,7 @@ from app.models.amenity import Amenity
 from app.models.place import Place
 from app.models.review import Review
 
+
 class HBnBFacade:
     def __init__(self):
         self.user_repo = InMemoryRepository()
@@ -15,13 +16,9 @@ class HBnBFacade:
 
     # --- Opérations sur les utilisateurs ---
     def create_user(self, user_data):
-        if self.user_repo.get_by_email(user_data["email"]):
-            raise ValueError("Email already registered.")
-
         user = User(**user_data)
         self.user_repo.add(user)
         return user
-
 
     def get_user(self, user_id):
         return self.user_repo.get(user_id)
@@ -50,7 +47,8 @@ class HBnBFacade:
             longitude=place_data["longitude"],
             owner=owner
         )
-        place_obj.amenities = [] if not hasattr(place_obj, "amenities") else place_obj.amenities
+        place_obj.amenities = [] if not hasattr(
+            place_obj, "amenities") else place_obj.amenities
 
         if "amenities" in place_data:
             amenities = []
