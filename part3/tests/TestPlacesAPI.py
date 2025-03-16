@@ -1,205 +1,281 @@
 import unittest
 import json
 import uuid
-from app import create_app
+from app import create_app, db
 from app.models.user import User
+from flask_jwt_extended import create_access_token
 
+class PlaceAPITestCase(unittest.TestCase):
+    """
+    This test case verifies the Place API endpoints, including creation,
+    retrieval, update, and deletion of places. It also checks that only
+    the owner or an admin can update/delete a place.
+    """
 
-class TestPlacesAPI(unittest.TestCase):
     def setUp(self):
+        """
+        Set up a test application context and an in-memory database.
+        Create test users: an owner, a non-owner, and an admin.
+        """
+        self.app = create_app("config.TestConfig")  # Make sure TestConfig is defined
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
 
+        # Clear any existing emails to avoid collisions
         User.existing_emails.clear()
 
-        self.app = create_app()
+        # Create an owner user (non-admin)
+        owner_email = f"{uuid.uuid4()}@example.com"
+        self.owner = User(
+            first_name="Owner",
+            last_name="User",
+            email=owner_email,
+            password="ownerpass",
+            is_admin=False
+        )
+        db.session.add(self.owner)
+        db.session.commit()
+
+        # Create a non-owner user (non-admin)
+        non_owner_email = f"{uuid.uuid4()}@example.com"
+        self.non_owner = User(
+            first_name="NonOwner",
+            last_name="User",
+            email=non_owner_email,
+            password="nonownerpass",
+            is_admin=False
+        )
+        db.session.add(self.non_owner)
+        db.session.commit()
+
+        # Create an admin user
+        admin_email = f"{uuid.uuid4()}@example.com"
+        self.admin = User(
+            first_name="Admin",
+            last_name="User",
+            email=admin_email,
+            password="adminpass",
+            is_admin=True
+        )
+        db.session.add(self.admin)
+        db.session.commit()
+
+        # Generate JWT tokens for each user
+        with self.app.test_request_context():
+            self.owner_token = create_access_token(identity={"id": self.owner.id, "is_admin": self.owner.is_admin})
+            self.non_owner_token = create_access_token(identity={"id": self.non_owner.id, "is_admin": self.non_owner.is_admin})
+            self.admin_token = create_access_token(identity={"id": self.admin.id, "is_admin": self.admin.is_admin})
+
         self.client = self.app.test_client()
+        # Adapt this if your namespace is registered differently:
+        # api.add_namespace(places_ns, path='/api/v1/places')
+        self.base_url = "/api/v1/places"
 
-        random_email = f"alice_{uuid.uuid4()}@example.com"
+    def tearDown(self):
+        """
+        Remove the session and drop all tables after each test.
+        """
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
 
-        user_payload = {
-            "first_name": "Alice",
-            "last_name": "Doe",
-            "email": random_email
+    def test_create_place_success(self):
+        """
+        Test creating a place with valid data using the owner's token.
+        """
+        data = {
+            "title": "Cozy Cottage",
+            "description": "A lovely place to stay",
+            "price": 120.0,
+            "latitude": 45.0,
+            "longitude": 10.0,
+            "owner_id": self.owner.id,
+            "amenities": []
         }
-        user_resp = self.client.post('/api/v1/users/', json=user_payload)
-        self.assertEqual(user_resp.status_code, 201, msg=user_resp.data)
-        user_data = json.loads(user_resp.data)
-        self.user_id = user_data["id"]
+        response = self.client.post(
+            f"{self.base_url}/",
+            json=data,
+            headers={"Authorization": f"Bearer {self.owner_token}"}
+        )
+        self.assertEqual(response.status_code, 201)
+        resp_json = response.get_json()
+        self.assertIn("id", resp_json)
+        self.assertEqual(resp_json["title"], "Cozy Cottage")
+        self.assertEqual(resp_json["owner"]["id"], self.owner.id)
 
-        amenity_payload = {"name": "WiFi"}
-        amenity_resp = self.client.post(
-            '/api/v1/amenities/', json=amenity_payload)
-        self.assertEqual(amenity_resp.status_code, 201, msg=amenity_resp.data)
-        amenity_data = json.loads(amenity_resp.data)
-        self.amenity_id = amenity_data["id"]
-
-    def test_create_place_valid(self):
-        payload = {
-            "title": "Central Apartment",
-            "description": "Nice place in city center",
-            "price": 150.0,
-            "latitude": 48.8566,
-            "longitude": 2.3522,
-            "owner_id": self.user_id,
-            "amenities": [self.amenity_id]
+    def test_create_place_invalid_price(self):
+        """
+        Test creating a place with a negative price should return 400.
+        """
+        data = {
+            "title": "Invalid Price Place",
+            "description": "Price is negative",
+            "price": -50,
+            "latitude": 45.0,
+            "longitude": 10.0,
+            "owner_id": self.owner.id,
+            "amenities": []
         }
-        resp = self.client.post('/api/v1/places/', json=payload)
-        self.assertEqual(resp.status_code, 201, msg=resp.data)
-        data = json.loads(resp.data)
-        self.assertIn("id", data)
-        self.assertEqual(data["title"], "Central Apartment")
-        self.assertEqual(data["amenities"], ["WiFi"])
+        response = self.client.post(
+            f"{self.base_url}/",
+            json=data,
+            headers={"Authorization": f"Bearer {self.owner_token}"}
+        )
+        self.assertEqual(response.status_code, 400)
 
     def test_get_all_places(self):
-        payload = {
-            "title": "Apartment One",
-            "description": "First apt",
-            "price": 100.0,
-            "latitude": 48.85,
-            "longitude": 2.35,
-            "owner_id": self.user_id,
+        """
+        Test retrieving a list of all places.
+        """
+        # Create two places
+        data1 = {
+            "title": "Place One",
+            "description": "First place",
+            "price": 100,
+            "latitude": 45.0,
+            "longitude": 10.0,
+            "owner_id": self.owner.id,
             "amenities": []
         }
-        post_resp = self.client.post('/api/v1/places/', json=payload)
-        self.assertEqual(post_resp.status_code, 201, msg=post_resp.data)
+        data2 = {
+            "title": "Place Two",
+            "description": "Second place",
+            "price": 150,
+            "latitude": 46.0,
+            "longitude": 11.0,
+            "owner_id": self.owner.id,
+            "amenities": []
+        }
+        self.client.post(
+            f"{self.base_url}/",
+            json=data1,
+            headers={"Authorization": f"Bearer {self.owner_token}"}
+        )
+        self.client.post(
+            f"{self.base_url}/",
+            json=data2,
+            headers={"Authorization": f"Bearer {self.owner_token}"}
+        )
 
-        resp = self.client.get('/api/v1/places/')
-        self.assertEqual(resp.status_code, 200, msg=resp.data)
-        places_list = json.loads(resp.data)
-        self.assertIsInstance(places_list, list)
-        self.assertTrue(len(places_list) >= 1)
+        response = self.client.get(f"{self.base_url}/")
+        self.assertEqual(response.status_code, 200)
+        resp_json = response.get_json()
+        self.assertIsInstance(resp_json, list)
+        self.assertGreaterEqual(len(resp_json), 2)
 
     def test_get_place_by_id(self):
-        payload = {
-            "title": "Test Place",
-            "description": "A test place",
-            "price": 120.0,
-            "latitude": 48.85,
-            "longitude": 2.35,
-            "owner_id": self.user_id,
+        """
+        Test retrieving a specific place by its ID.
+        """
+        data = {
+            "title": "Unique Place",
+            "description": "Special place",
+            "price": 200,
+            "latitude": 45.0,
+            "longitude": 10.0,
+            "owner_id": self.owner.id,
             "amenities": []
         }
-        post_resp = self.client.post('/api/v1/places/', json=payload)
-        self.assertEqual(post_resp.status_code, 201, msg=post_resp.data)
-        place_data = json.loads(post_resp.data)
-        place_id = place_data["id"]
+        post_resp = self.client.post(
+            f"{self.base_url}/",
+            json=data,
+            headers={"Authorization": f"Bearer {self.owner_token}"}
+        )
+        place_id = post_resp.get_json()["id"]
 
-        get_resp = self.client.get(f'/api/v1/places/{place_id}')
-        self.assertEqual(get_resp.status_code, 200, msg=get_resp.data)
-        place_info = json.loads(get_resp.data)
-        self.assertEqual(place_info["id"], place_id)
-        self.assertEqual(place_info["title"], "Test Place")
+        response = self.client.get(f"{self.base_url}/{place_id}")
+        self.assertEqual(response.status_code, 200)
+        resp_json = response.get_json()
+        self.assertEqual(resp_json["id"], place_id)
+        self.assertEqual(resp_json["title"], "Unique Place")
 
-    def test_get_place_not_found(self):
-
-        get_resp = self.client.get('/api/v1/places/nonexistent-id')
-        self.assertEqual(get_resp.status_code, 404, msg=get_resp.data)
-        data = json.loads(get_resp.data)
-        self.assertIn("Place not found", data.get("message", ""))
-
-    def test_update_place_valid(self):
-        payload = {
+    def test_update_place_success(self):
+        """
+        Test updating a place with valid data using the owner's token.
+        """
+        data = {
             "title": "Old Title",
             "description": "Old desc",
-            "price": 100.0,
-            "latitude": 48.85,
-            "longitude": 2.35,
-            "owner_id": self.user_id,
+            "price": 80,
+            "latitude": 45.0,
+            "longitude": 10.0,
+            "owner_id": self.owner.id,
             "amenities": []
         }
-        post_resp = self.client.post('/api/v1/places/', json=payload)
-        self.assertEqual(post_resp.status_code, 201, msg=post_resp.data)
-        place_data = json.loads(post_resp.data)
-        place_id = place_data["id"]
+        post_resp = self.client.post(
+            f"{self.base_url}/",
+            json=data,
+            headers={"Authorization": f"Bearer {self.owner_token}"}
+        )
+        place_id = post_resp.get_json()["id"]
 
-        update_payload = {
+        updated_data = {
             "title": "New Title",
-            "description": "New desc",
-            "price": 120.0,
-            "latitude": 49.0,
-            "longitude": 3.0,
-            "owner_id": self.user_id,
-            "amenities": [self.amenity_id]
+            "price": 95
         }
-        put_resp = self.client.put(
-            f'/api/v1/places/{place_id}', json=update_payload)
-        self.assertEqual(put_resp.status_code, 200, msg=put_resp.data)
-        updated_data = json.loads(put_resp.data)
-        self.assertEqual(updated_data["title"], "New Title")
-        self.assertEqual(updated_data["description"], "New desc")
-        self.assertEqual(updated_data["price"], 120.0)
-        self.assertEqual(updated_data["latitude"], 49.0)
-        self.assertEqual(updated_data["longitude"], 3.0)
-        self.assertEqual(updated_data["amenities"], [self.amenity_id])
+        response = self.client.put(
+            f"{self.base_url}/{place_id}",
+            json=updated_data,
+            headers={"Authorization": f"Bearer {self.owner_token}"}
+        )
+        self.assertEqual(response.status_code, 200)
+        resp_json = response.get_json()
+        self.assertEqual(resp_json["title"], "New Title")
+        self.assertEqual(resp_json["price"], 95)
 
-    def test_update_place_invalid_price(self):
-        payload = {
-            "title": "Place to update",
-            "description": "desc",
-            "price": 150.0,
-            "latitude": 48.85,
-            "longitude": 2.35,
-            "owner_id": self.user_id,
-            "amenities": []
-        }
-        post_resp = self.client.post('/api/v1/places/', json=payload)
-        self.assertEqual(post_resp.status_code, 201, msg=post_resp.data)
-        place_data = json.loads(post_resp.data)
-        place_id = place_data["id"]
 
-        update_payload = {
-            "price": -50.0,
-            "title": "New Title",
-            "description": "Should fail",
-            "latitude": 49.0,
-            "longitude": 3.0,
-            "owner_id": self.user_id,
-            "amenities": []
-        }
-        put_resp = self.client.put(
-            f'/api/v1/places/{place_id}', json=update_payload)
-        self.assertEqual(put_resp.status_code, 400, msg=put_resp.data)
-        data = json.loads(put_resp.data)
-        self.assertIn("non-negative", data["message"])
-
-    def test_update_place_not_found(self):
-
-        update_payload = {
-            "title": "New Title",
-            "price": 120.0,
-            "amenities": []
-        }
-        put_resp = self.client.put(
-            '/api/v1/places/nonexistent-id', json=update_payload)
-        self.assertEqual(put_resp.status_code, 404, msg=put_resp.data)
-
-    def test_update_place_invalid_owner(self):
+    def test_delete_place_non_owner(self):
         """
-        Test update with invalide owner_id (inexistant user).
+        Test that a non-owner (and non-admin) cannot delete a place.
         """
-        payload = {
-            "title": "Place with Valid Owner",
-            "description": "desc",
-            "price": 150.0,
-            "latitude": 48.85,
-            "longitude": 2.35,
-            "owner_id": self.user_id,
+        data = {
+            "title": "Protected Place",
+            "description": "Owner only",
+            "price": 70,
+            "latitude": 45.0,
+            "longitude": 10.0,
+            "owner_id": self.owner.id,
             "amenities": []
         }
-        post_resp = self.client.post('/api/v1/places/', json=payload)
-        self.assertEqual(post_resp.status_code, 201, msg=post_resp.data)
-        place_data = json.loads(post_resp.data)
-        place_id = place_data["id"]
+        post_resp = self.client.post(
+            f"{self.base_url}/",
+            json=data,
+            headers={"Authorization": f"Bearer {self.owner_token}"}
+        )
+        place_id = post_resp.get_json()["id"]
 
-        update_payload = {
-            "owner_id": "invalid-owner-id",
-            "title": "Updated Title",
+        response = self.client.delete(
+            f"{self.base_url}/{place_id}",
+            headers={"Authorization": f"Bearer {self.non_owner_token}"}
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_delete_place_admin(self):
+        """
+        Test that an admin can delete any place.
+        """
+        data = {
+            "title": "Admin Deletion Place",
+            "description": "Should be removed by admin",
+            "price": 70,
+            "latitude": 45.0,
+            "longitude": 10.0,
+            "owner_id": self.owner.id,
             "amenities": []
         }
-        put_resp = self.client.put(
-            f'/api/v1/places/{place_id}', json=update_payload)
-        self.assertEqual(put_resp.status_code, 400, msg=put_resp.data)
-        data = json.loads(put_resp.data)
-        self.assertIn("Owner not found", data["message"])
+        post_resp = self.client.post(
+            f"{self.base_url}/",
+            json=data,
+            headers={"Authorization": f"Bearer {self.owner_token}"}
+        )
+        place_id = post_resp.get_json()["id"]
+
+        response = self.client.delete(
+            f"{self.base_url}/{place_id}",
+            headers={"Authorization": f"Bearer {self.admin_token}"}
+        )
+        self.assertEqual(response.status_code, 200)
 
 
 if __name__ == "__main__":

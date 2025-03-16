@@ -1,102 +1,236 @@
 import unittest
-from unittest import mock
-from app.models.place import Place
+import uuid
+from app import create_app, db
 from app.models.user import User
+from app.models.place import Place
 from app.models.review import Review
 from app.models.amenity import Amenity
 
+class TestPlaceModel(unittest.TestCase):
+    """
+    This test case verifies the behavior of the Place model, including
+    creation, validations, and adding reviews/amenities.
+    """
 
-class TestPlace(unittest.TestCase):
+    def setUp(self):
+        """
+        Set up a test application context and create all tables
+        in an in-memory database. Also clear User.existing_emails to avoid
+        'This email is already in use' errors across multiple tests.
+        """
+        self.app = create_app("config.TestConfig")  # Adapt if your TestConfig is named differently
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
 
-    def test_valid_place_creation(self):
-        """Tests the creation of a valid location."""
-        owner_mock = mock.Mock(spec=User)
-        place = Place("Cozy Cabin", "A small cozy cabin in the woods",
-                      120.0, 45.0, -73.0, owner_mock)
+        # Clear the existing_emails set to avoid collisions between tests
+        User.existing_emails.clear()
 
-        self.assertEqual(place.title, "Cozy Cabin")
-        self.assertEqual(place.description, "A small cozy cabin in the woods")
-        self.assertEqual(place.price, 120.0)
-        self.assertEqual(place.latitude, 45.0)
-        self.assertEqual(place.longitude, -73.0)
-        self.assertEqual(place.owner, owner_mock)
-        self.assertEqual(place.reviews, [])
-        self.assertEqual(place.amenities, [])
+        # Create a user to be the owner of places (with a unique email)
+        unique_email = f"{uuid.uuid4()}@example.com"
+        self.user = User(
+            first_name="John",
+            last_name="Doe",
+            email=unique_email,
+            password="password"
+        )
+        db.session.add(self.user)
+        db.session.commit()
 
-    def test_invalid_title_empty(self):
-        """Tests if an empty title triggers an error."""
-        owner_mock = mock.Mock(spec=User)
+    def tearDown(self):
+        """
+        Remove the session and drop all tables after each test.
+        """
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def test_create_valid_place(self):
+        """
+        Test creating a valid place with correct attributes.
+        """
+        place = Place(
+            title="Cozy Cottage",
+            description="A nice place to stay",
+            price=100,
+            latitude=45.0,
+            longitude=10.0,
+            owner=self.user
+        )
+        db.session.add(place)
+        db.session.commit()
+
+        retrieved = Place.query.get(place.id)
+        self.assertIsNotNone(retrieved)
+        self.assertEqual(retrieved.title, "Cozy Cottage")
+        self.assertEqual(retrieved.owner_id, self.user.id)
+
+    def test_create_place_invalid_title(self):
+        """
+        Test creating a place with an empty or too long title should raise ValueError.
+        """
+        # Empty title
         with self.assertRaises(ValueError):
-            Place("", "Description", 50.0, 40.0, -75.0, owner_mock)
+            Place(
+                title="",
+                description="desc",
+                price=50,
+                latitude=45.0,
+                longitude=10.0,
+                owner=self.user
+            )
 
-    def test_invalid_title_too_long(self):
-        """Tests if a title that is too long triggers an error."""
-        owner_mock = mock.Mock(spec=User)
+        # Title too long
+        long_title = "a" * 101
         with self.assertRaises(ValueError):
-            Place("T" * 101, "Description", 50.0, 40.0, -75.0, owner_mock)
+            Place(
+                title=long_title,
+                description="desc",
+                price=50,
+                latitude=45.0,
+                longitude=10.0,
+                owner=self.user
+            )
 
-    def test_invalid_price_negative(self):
-        """Tests if a negative price triggers an error."""
-        owner_mock = mock.Mock(spec=User)
+    def test_create_place_negative_price(self):
+        """
+        Test creating a place with a negative price should raise ValueError.
+        """
         with self.assertRaises(ValueError):
-            Place("Nice Place", "Description", -10.0, 40.0, -75.0, owner_mock)
+            Place(
+                title="Negative Price Place",
+                description="desc",
+                price=-10,
+                latitude=45.0,
+                longitude=10.0,
+                owner=self.user
+            )
 
-    def test_invalid_latitude_out_of_bounds(self):
-        """Tests if out of range latitude triggers an error."""
-        owner_mock = mock.Mock(spec=User)
+    def test_create_place_invalid_latitude(self):
+        """
+        Test creating a place with an out-of-range latitude should raise ValueError.
+        """
         with self.assertRaises(ValueError):
-            Place("Nice Place", "Description", 100.0, -91.0, -75.0, owner_mock)
+            Place(
+                title="Invalid Latitude",
+                description="desc",
+                price=50,
+                latitude=100.0,  # Out of [-90, 90]
+                longitude=10.0,
+                owner=self.user
+            )
 
-    def test_invalid_longitude_out_of_bounds(self):
-        """Tests if longitude out of range triggers an error."""
-        owner_mock = mock.Mock(spec=User)
+    def test_create_place_invalid_longitude(self):
+        """
+        Test creating a place with an out-of-range longitude should raise ValueError.
+        """
         with self.assertRaises(ValueError):
-            Place("Nice Place", "Description", 100.0, 40.0, 181.0, owner_mock)
+            Place(
+                title="Invalid Longitude",
+                description="desc",
+                price=50,
+                latitude=45.0,
+                longitude=200.0,  # Out of [-180, 180]
+                owner=self.user
+            )
 
-    def test_invalid_owner_type(self):
-        """Test if wrong type for owner triggers an error."""
+    def test_create_place_invalid_owner(self):
+        """
+        Test creating a place with an invalid owner type should raise TypeError.
+        """
         with self.assertRaises(TypeError):
-            Place("Nice Place", "Description", 100.0,
-                  40.0, -75.0, "not_a_user_instance")
+            Place(
+                title="TypeError Place",
+                description="desc",
+                price=50,
+                latitude=45.0,
+                longitude=10.0,
+                owner="not_a_user"
+            )
 
-    def test_add_review(self):
-        """Test adding a review to a location."""
-        owner_mock = mock.Mock(spec=User)
-        review_mock = mock.Mock(spec=Review)
-        place = Place("Nice Place", "Description",
-                      100.0, 40.0, -75.0, owner_mock)
+    def test_add_review_to_place(self):
+        """
+        Test adding a valid Review to a Place.
+        """
+        place = Place(
+            title="Review Test Place",
+            description="desc",
+            price=50,
+            latitude=45.0,
+            longitude=10.0,
+            owner=self.user
+        )
+        db.session.add(place)
+        db.session.commit()
 
-        place.add_review(review_mock)
-        self.assertIn(review_mock, place.reviews)
+        review = Review(text="Great place!", rating=5, user=self.user, place=place)
+        place.add_review(review)
+        db.session.commit()
 
-    def test_add_review_invalid_type(self):
-        """Test if the wrong review type triggers an error."""
-        owner_mock = mock.Mock(spec=User)
-        place = Place("Nice Place", "Description",
-                      100.0, 40.0, -75.0, owner_mock)
+        self.assertIn(review, place.reviews)
+        self.assertEqual(review.place.id, place.id)
+
+    def test_add_amenity_to_place(self):
+        """
+        Test adding a valid Amenity to a Place.
+        """
+        place = Place(
+            title="Amenity Test Place",
+            description="desc",
+            price=50,
+            latitude=45.0,
+            longitude=10.0,
+            owner=self.user
+        )
+        db.session.add(place)
+        db.session.commit()
+
+        amenity = Amenity(name="Pool", owner_id=None)
+        db.session.add(amenity)
+        db.session.commit()
+
+        place.add_amenity(amenity)
+        db.session.commit()
+
+        self.assertIn(amenity, place.amenities)
+        self.assertIn(place, amenity.places)  # Because it's a many-to-many relationship
+
+    def test_add_review_type_error(self):
+        """
+        Test adding an invalid object (not a Review) to a Place should raise TypeError.
+        """
+        place = Place(
+            title="Bad Review Place",
+            description="desc",
+            price=50,
+            latitude=45.0,
+            longitude=10.0,
+            owner=self.user
+        )
+        db.session.add(place)
+        db.session.commit()
 
         with self.assertRaises(TypeError):
-            place.add_review("not_a_review_instance")
+            place.add_review("not_a_review")
 
-    def test_add_amenity(self):
-        """Test adding an amenity to a location."""
-        owner_mock = mock.Mock(spec=User)
-        amenity_mock = mock.Mock(spec=Amenity)
-        place = Place("Nice Place", "Description",
-                      100.0, 40.0, -75.0, owner_mock)
-
-        place.add_amenity(amenity_mock)
-        self.assertIn(amenity_mock, place.amenities)
-
-    def test_add_amenity_invalid_type(self):
-        """Tests if the wrong convenience type triggers an error."""
-        owner_mock = mock.Mock(spec=User)
-        place = Place("Nice Place", "Description",
-                      100.0, 40.0, -75.0, owner_mock)
+    def test_add_amenity_type_error(self):
+        """
+        Test adding an invalid object (not an Amenity) to a Place should raise TypeError.
+        """
+        place = Place(
+            title="Bad Amenity Place",
+            description="desc",
+            price=50,
+            latitude=45.0,
+            longitude=10.0,
+            owner=self.user
+        )
+        db.session.add(place)
+        db.session.commit()
 
         with self.assertRaises(TypeError):
-            place.add_amenity("not_an_amenity_instance")
+            place.add_amenity("not_an_amenity")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
