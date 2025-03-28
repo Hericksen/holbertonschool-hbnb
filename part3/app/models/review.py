@@ -9,7 +9,7 @@ class Review(BaseModel):
             raise ValueError("Invalide 'text': review content must not be empty")
         if not (1 <= rating <= 5):
             raise ValueError("Invalid 'rating': must be between 1 and 5.")
-        
+
         from .place import Place
         if not isinstance(place, Place):
             raise TypeError("Invalid 'place': must be an instance of Place.")

@@ -1,0 +1,15 @@
+# Start Generation Here
+*.pyc
+__pycache__/
+instance/
+.webassets-cache
+*.db
+*.sqlite3
+*.log
+*.env
+*.venv
+*.egg-info/
+dist/
+build/
+*.egg
+# End Generation Here
