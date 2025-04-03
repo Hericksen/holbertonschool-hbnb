@@ -51,30 +51,6 @@ class User(BaseModel):
         self.email = email
         self.hash_password(password)
         self.is_admin = is_admin
-<<<<<<< HEAD
-
-        self.hash_password(password)
-
-    def hash_password(self, password):
-        """Hash the password before storing it."""
-        self.password = bcrypt.generate_password_hash(password).decode('utf-8')
-
-    def verify_password(self, password):
-        """Verify the provided password against the stored hash."""
-        return bcrypt.check_password_hash(self.password, password)
-
-    def to_dict(self):
-        """Return a dictionary representation of the user (excluding the password)."""
-        return {
-            "id": self.id,
-            "first_name": self.first_name,
-            "last_name": self.last_name,
-            "email": self.email,
-            "is_admin": self.is_admin,
-            "places": [p.id for p in self.places],
-            "reviews": [r.id for r in self.reviews]
-        }
-=======
         self.validate_email()
 
     def validate_email(self):
@@ -92,4 +68,3 @@ class User(BaseModel):
 
     def __str__(self):
         return f"User({self.id}, {self.first_name} {self.last_name}, {self.email})"
->>>>>>> Hamza

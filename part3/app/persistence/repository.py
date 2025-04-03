@@ -1,30 +1,4 @@
 from abc import ABC, abstractmethod
-<<<<<<< HEAD
-from app import db
-from sqlalchemy.orm import scoped_session, sessionmaker
-from sqlalchemy.ext.declarative import as_declarative, declared_attr
-import uuid
-from datetime import datetime
-
-
-@as_declarative()
-class Base:
-    @declared_attr
-    def __tablename__(cls):
-        return cls.__name__.lower()
-
-
-class BaseModel(db.Model):
-    __abstract__ = True  # SQLAlchemy ne crée pas de table pour BaseModel
-
-    id = db.Column(db.String(36), primary_key=True,
-                   default=lambda: str(uuid.uuid4()))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-=======
->>>>>>> Hamza
 
 class Repository(ABC):
     @abstractmethod
