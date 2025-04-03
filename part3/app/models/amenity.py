@@ -15,6 +15,4 @@ class Amenity(BaseModel):
         if not name or len(name) > 50:
             raise ValueError(
                 "Invalid 'name': must be non-empty and ≤ 50 characters.")
-
         self.name = name
-        self.owner_id = owner_id

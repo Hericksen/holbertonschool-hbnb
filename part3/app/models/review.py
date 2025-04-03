@@ -34,6 +34,10 @@ class Review(BaseModel):
         if not (1 <= rating <= 5):
             raise ValueError("Invalid 'rating': must be between 1 and 5.")
 
+        from .place import Place
+        if not isinstance(place, Place):
+            raise TypeError("Invalid 'place': must be an instance of Place.")
+
         from .user import User
         from .place import Place
         if not isinstance(user, User):

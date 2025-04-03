@@ -1,6 +1,10 @@
+# app/models/user.py
+
+from flask_bcrypt import Bcrypt
+from app.models.base_model import BaseModel
 import re
-from app import db, bcrypt
-from app.models.BaseModel import BaseModel
+
+bcrypt = Bcrypt()
 
 
 class User(BaseModel):
@@ -45,7 +49,9 @@ class User(BaseModel):
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
+        self.hash_password(password)
         self.is_admin = is_admin
+<<<<<<< HEAD
 
         self.hash_password(password)
 
@@ -68,3 +74,22 @@ class User(BaseModel):
             "places": [p.id for p in self.places],
             "reviews": [r.id for r in self.reviews]
         }
+=======
+        self.validate_email()
+
+    def validate_email(self):
+        """Valide l'email pour s'assurer qu'il est au format correct"""
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", self.email):
+            raise ValueError("Email non valide")
+
+    def hash_password(self, password):
+        """Hash le mot de passe avec bcrypt"""
+        self.password = bcrypt.generate_password_hash(password).decode('utf-8')
+
+    def verify_password(self, password):
+        """Vérifie si le mot de passe est correct"""
+        return bcrypt.check_password_hash(self.password, password)
+
+    def __str__(self):
+        return f"User({self.id}, {self.first_name} {self.last_name}, {self.email})"
+>>>>>>> Hamza

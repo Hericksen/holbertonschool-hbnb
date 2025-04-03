@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+<<<<<<< HEAD
 from app import db
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import as_declarative, declared_attr
@@ -22,6 +23,8 @@ class BaseModel(db.Model):
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+=======
+>>>>>>> Hamza
 
 class Repository(ABC):
     @abstractmethod
@@ -50,32 +53,27 @@ class Repository(ABC):
         pass
 
 
-class SQLAlchemyRepository(Repository):
-    def __init__(self, model):
-        self.model = model
+class InMemoryRepository(Repository):
+    def __init__(self):
+        self._storage = {}
 
-    def add(self, instance):
-        from app import db
-        db.session.add(instance)
-        db.session.commit()
+    def add(self, obj):
+        self._storage[obj.id] = obj
 
-    def get(self, id):
-        from app import db
-        return db.session.query(self.model).get(id)
+    def get(self, obj_id):
+        return self._storage.get(obj_id)
 
     def get_all(self):
-        from app import db
-        return db.session.query(self.model).all()
+        return list(self._storage.values())
 
-    def update(self, instance):
-        from app import db
-        db.session.commit()
+    def update(self, obj_id, data):
+        obj = self.get(obj_id)
+        if obj:
+            obj.update(data)
 
-    def delete(self, instance):
-        from app import db
-        db.session.delete(instance)
-        db.session.commit()
+    def delete(self, obj_id):
+        if obj_id in self._storage:
+            del self._storage[obj_id]
 
     def get_by_attribute(self, attr_name, attr_value):
-        from app import db
-        return db.session.query(self.model).filter(getattr(self.model, attr_name) == attr_value).first()
+        return next((obj for obj in self._storage.values() if getattr(obj, attr_name) == attr_value), None)

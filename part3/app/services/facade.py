@@ -7,6 +7,7 @@ from app.models.place import Place
 from app.models.review import Review
 from app.models.amenity import Amenity
 
+
 class HBnBFacade:
     def __init__(self):
         self.user_repo = UserRepository()
@@ -156,7 +157,12 @@ class HBnBFacade:
             longitude=place_data["longitude"],
             owner=owner
         )
+<<<<<<< HEAD
         place_obj.amenities = []
+=======
+        place_obj.amenities = [] if not hasattr(
+            place_obj, "amenities") else place_obj.amenities
+>>>>>>> Hamza
 
         if "amenities" in place_data:
             for amenity_id in place_data["amenities"]:
