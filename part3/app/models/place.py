@@ -1,5 +1,5 @@
 from app import db
-from app.models.BaseModel import BaseModel
+from app.models.base_model import BaseModel
 
 # Association table for many-to-many relationship between Place and Amenity
 place_amenity = db.Table('place_amenity',

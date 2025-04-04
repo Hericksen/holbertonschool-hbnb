@@ -25,6 +25,32 @@ class AmenityList(Resource):
             }, 201
         except ValueError as e:
             return {'message': str(e)}, 400
+        
+@api.route('/<string:amenity_id>')
+class AmenityResource(Resource):
+    @api.response(404, "L'équipement demandé est introuvable")
+    @api.response(200, "Détails de l'équipement récupérés avec succès")
+    def get(self, amenity_id):
+        """Obtenir les informations d'un équipement via son identifiant"""
+        try:
+            amenity = facade.get_amenity(amenity_id)
+
+            if not amenity:
+                return {'error': "L'équipement n'a pas été trouvé"}, 404
+
+            return {
+                'id': amenity.id,
+                'name': amenity.name,
+                'description': amenity.description
+            }, 200
+
+        except ValueError:
+            # Gestion d'un format d'identifiant invalide
+            return {'error': "Format d'identifiant de l'équipement invalide"}, 400
+        except Exception as e:
+            # Capture des erreurs inattendues
+            return {'error': f"Une erreur inattendue s'est produite : {str(e)}"}, 500
+
 
     @api.response(200, 'List of amenities retrieved successfully')
     def get(self):

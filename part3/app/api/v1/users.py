@@ -38,14 +38,45 @@ class UserList(Resource):
         }, 201
 
 
-@api.route('/<user_id>')
+@api.route('/<string:user_id>')
 class UserResource(Resource):
-    @api.response(200, 'User details retrieved successfully')
     @api.response(404, 'User not found')
+    @api.response(200, 'User details retrieved successfully')
     def get(self, user_id):
-        """Get user details by ID"""
+        """Fetch the details of a user using their ID"""
         user = facade.get_user(user_id)
         if not user:
             return {'error': 'User not found'}, 404
-        return {'id': user.id, 'first_name': user.first_name,
-                'last_name': user.last_name, 'email': user.email}, 200
+        return {
+            'id': user.id,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'email': user.email
+        }, 200
+        
+    @api.expect(user_model)
+    @api.response(200, 'User details updated successfully')
+    @api.response(400, 'Invalid input data')
+    def put(self, user_id):
+        """Modify a user’s details based on their ID"""
+        user_data = request.get_json()
+
+        user = facade.get_user(user_id)
+        if not user:
+            return {'error': 'User not found'}, 404
+
+        # Hash the password if provided
+        if 'password' in user_data:
+            password = user_data.pop('password')  # Remove password from user data
+            user_data['password'] = facade.hash_password(password)  # Hash the password
+
+        updated_user = facade.update_user(user_id, user_data)
+        if not updated_user:
+            return {'error': 'User update failed'}, 500
+
+        return {
+            'id': updated_user.id,
+            'first_name': updated_user.first_name,
+            'last_name': updated_user.last_name,
+            'email': updated_user.email
+        }, 200

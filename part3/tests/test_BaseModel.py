@@ -3,7 +3,7 @@ import uuid
 import time
 from datetime import datetime
 from app import create_app, db
-from app.models.BaseModel import BaseModel
+from part3.app.models.base_model import BaseModel
 
 # A dummy model for testing BaseModel functionality.
 class DummyModel(BaseModel):

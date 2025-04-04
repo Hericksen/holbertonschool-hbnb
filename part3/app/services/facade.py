@@ -157,12 +157,9 @@ class HBnBFacade:
             longitude=place_data["longitude"],
             owner=owner
         )
-<<<<<<< HEAD
         place_obj.amenities = []
-=======
         place_obj.amenities = [] if not hasattr(
             place_obj, "amenities") else place_obj.amenities
->>>>>>> Hamza
 
         if "amenities" in place_data:
             for amenity_id in place_data["amenities"]:

@@ -3,3 +3,5 @@ flask
 flask-restx
 flask-bcrypt
 PyJWT==2.8.0
+sqlalchemy
+flask-sqlalchemy
