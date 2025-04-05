@@ -13,13 +13,12 @@ class Repository(ABC):
     def get_all(self):
         pass
 
-    # Modification : on attend une instance
     @abstractmethod
-    def update(self, instance):
+    def update(self, obj_id, data):
         pass
 
     @abstractmethod
-    def delete(self, instance):
+    def delete(self, obj_id):
         pass
 
     @abstractmethod
