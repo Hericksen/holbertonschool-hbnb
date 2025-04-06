@@ -5,6 +5,10 @@ from app.models.user import User
 from app.models.amenity import Amenity
 from app.models.place import Place
 from app.models.review import Review
+from flask_jwt_extended import get_jwt
+from flask_bcrypt import Bcrypt
+
+bcrypt = Bcrypt()
 
 
 class HBnBFacade:
@@ -14,7 +18,7 @@ class HBnBFacade:
         self.review_repo = InMemoryRepository()
         self.amenity_repo = InMemoryRepository()
 
-    # --- Opérations sur les utilisateurs ---
+    # --- Users ---
     def create_user(self, user_data):
         user = User(**user_data)
         self.user_repo.add(user)
@@ -26,7 +30,26 @@ class HBnBFacade:
     def get_user_by_email(self, email):
         return self.user_repo.get_by_attribute('email', email)
 
-    # --- Opérations sur les lieux ---
+    def update_user(self, user_id, update_data):
+        user = self.user_repo.get(user_id)
+        if not user:
+            return None
+
+        if 'first_name' in update_data:
+            user.first_name = update_data['first_name']
+        if 'last_name' in update_data:
+            user.last_name = update_data['last_name']
+        if 'email' in update_data:
+            user.email = update_data['email']
+        if 'password' in update_data:
+            user.password = bcrypt.generate_password_hash(
+                update_data['password']
+            ).decode('utf-8')
+
+        self.user_repo.add(user)
+        return user
+
+    # --- Places ---
     def create_place(self, place_data):
         if place_data["price"] < 0:
             raise ValueError("Price must be a non-negative value.")
@@ -47,8 +70,6 @@ class HBnBFacade:
             longitude=place_data["longitude"],
             owner=owner
         )
-        place_obj.amenities = [] if not hasattr(
-            place_obj, "amenities") else place_obj.amenities
 
         if "amenities" in place_data:
             amenities = []
@@ -74,8 +95,9 @@ class HBnBFacade:
         place = self.place_repo.get(place_id)
         if not place:
             return None
+
         if "price" in data and data["price"] < 0:
-            raise ValueError("Price must be a non-negative value.")
+            raise ValueError("Price must be non-negative.")
         if "latitude" in data and not (-90 <= data["latitude"] <= 90):
             raise ValueError("Latitude must be between -90 and 90.")
         if "longitude" in data and not (-180 <= data["longitude"] <= 180):
@@ -85,15 +107,14 @@ class HBnBFacade:
             new_owner = self.user_repo.get(data["owner_id"])
             if not new_owner:
                 raise ValueError("Owner not found.")
-        place.owner = new_owner
-        data.pop("owner_id")
+            place.owner = new_owner
+            data.pop("owner_id")
 
         place.update(data)
         self.place_repo.add(place)
         return place
 
-    # --- Opérations sur les avis (reviews) ---
-
+    # --- Reviews ---
     def create_review(self, review_data):
         required = ["text", "rating", "user_id", "place_id"]
         for field in required:
@@ -106,6 +127,7 @@ class HBnBFacade:
         user = self.user_repo.get(review_data["user_id"])
         if not user:
             raise ValueError("User not found.")
+
         place = self.place_repo.get(review_data["place_id"])
         if not place:
             raise ValueError("Place not found.")
@@ -140,7 +162,7 @@ class HBnBFacade:
         if "rating" in data:
             if not (1 <= data["rating"] <= 5):
                 raise ValueError("Rating must be between 1 and 5.")
-        review.rating = data["rating"]
+            review.rating = data["rating"]
 
         self.review_repo.add(review)
         return review
@@ -151,11 +173,13 @@ class HBnBFacade:
             return None
         return self.review_repo.delete(review_id)
 
+    # --- Amenities ---
     def create_amenity(self, amenity_data):
         name = amenity_data.get("name", "")
         if not name or len(name) > 50:
             raise ValueError(
-                "Invalid 'name': must be non-empty and ≤ 50 characters.")
+                "Invalid 'name': must be non-empty and ≤ 50 characters."
+            )
         amenity_obj = Amenity(name=name)
         self.amenity_repo.add(amenity_obj)
         return amenity_obj
@@ -173,3 +197,6 @@ class HBnBFacade:
         amenity.update(data)
         self.amenity_repo.add(amenity)
         return amenity
+
+    def is_admin(self):
+        return get_jwt().get("is_admin", False)
