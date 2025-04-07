@@ -24,8 +24,8 @@ class ReviewList(Resource):
                 "Review id": str(review_obj.id),
                 "text": review_obj.text,
                 "rating": int(review_obj.rating),
-                "user_id": str(review_obj.user.id),  # Correction ici
-                "place_id": str(review_obj.place.id)  # Correction ici
+                "user_id": str(review_obj.user.id),
+                "place_id": str(review_obj.place.id)
             }, 201
         except Exception as e:
             return {'message': str(e)}, 400
