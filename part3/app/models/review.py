@@ -1,27 +1,48 @@
-# app/models/review.py
+#!/user/bin/python3
 
-from app.models.base_model import BaseModel
+from app.models.basemodel import BaseModel
+from app import db
 
 class Review(BaseModel):
-    def __init__(self, text, rating, place, user):
+    __tablename__ = 'reviews'
+
+    text = db.Column(db.String(500), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    place_id = db.Column(db.Integer, db.ForeignKey('places.id'), nullable=False)
+
+    def __init__(self, text, rating, place_id, user_id):
         super().__init__()
+        self.text = self.validate_text(text)
+        self.rating = self.validate_rating(rating)
+        self.place_id = self.validate_place(place_id)
+        self.user_id = self.validate_user(user_id)
+
+    def validate_text(self, text):
         if not text:
-            raise ValueError("Invalide 'text': review content must not be empty")
+            raise ValueError("Review text must be provided.")
+        return text
+
+    def validate_rating(self, rating):
         if not (1 <= rating <= 5):
-            raise ValueError("Invalid 'rating': must be between 1 and 5.")
+            raise ValueError("Rating must be between 1 and 5.")
+        return rating
 
-        from .place import Place
-        if not isinstance(place, Place):
-            raise TypeError("Invalid 'place': must be an instance of Place.")
+    def validate_place(self, place_id):
+        from app.services import facade
+        place = facade.place_repo.get(place_id)
+        if not place:
+            raise ValueError("Place must be a valid Place instance.")
+        return place_id
 
-        from .user import User
-        if not isinstance(user, User):
-            raise TypeError("Invalid 'user': must be an instance of User.")
-
-        self.text = text
-        self.rating = rating
-        self.place = place  # Instance de la classe Place
-        self.user = user  # Instance de la classe User
+    def validate_user(self, user_id):
+        from app.services import facade
+        user = facade.user_repo.get(user_id)
+        if not user:
+            raise ValueError("User must be a valid User instance.")
+        return user_id
 
     def __str__(self):
-        return f"Review({self.id}, {self.rating}, {self.text})"
+        return (f"Review({self.id}, {self.text[:30]}..., Rating: {self.rating}, "
+                f"Place: {self.place.title}, User: {self.user.first_name} {self.user.last_name}, "
+                f"Created at: {self.created_at}, Last updated: {self.updated_at})")

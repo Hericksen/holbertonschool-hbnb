@@ -12,4 +12,5 @@ instance/
 dist/
 build/
 *.egg
+*env
 # End Generation Here
