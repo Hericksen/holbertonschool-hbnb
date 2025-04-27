@@ -1,0 +1,148 @@
+/* Global Variables */
+:root {
+    --primary-color: #1A1A1D; /* Noir intense */
+    --primary-hover: #E63946; /* Rouge vif */
+    --secondary-color: #F5F5F5; /* Blanc cassé */
+    --accent-color: #A8DADC; /* Bleu pastel */
+    --bg-dark: #1A1A1D; /* Fond noir intense */
+    --bg-light: #F5F5F5; /* Fond blanc cassé */
+    --text-color: #F5F5F5; /* Texte blanc cassé */
+    --text-muted: #A8A8A8; /* Texte gris clair */
+    --border-color: #4A4A4A; /* Bordures gris foncé */
+    --shadow: 0 4px 15px rgba(0, 0, 0, 0.3); /* Ombre subtile */
+    --transition: all 0.3s ease-in-out;
+    --border-radius: 8px;
+    --spacing: 1rem;
+}
+
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-color);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    transition: var(--transition);
+}
+
+/* Header */
+header {
+    background-color: var(--bg-light);
+    padding: var(--spacing);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow);
+    border-bottom: 2px solid var(--border-color);
+}
+
+header img {
+    height: 50px;
+    transition: var(--transition);
+}
+
+header img:hover {
+    filter: brightness(1.2);
+    transform: scale(1.1);
+}
+
+header nav a {
+    color: var(--primary-color);
+    text-decoration: none;
+    margin: 0 var(--spacing);
+    font-weight: bold;
+    transition: var(--transition);
+}
+
+header nav a:hover {
+    color: var(--primary-hover);
+}
+
+/* Footer */
+footer {
+    background-color: var(--bg-dark);
+    text-align: center;
+    padding: var(--spacing);
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-color);
+}
+
+/* Buttons */
+button {
+    background-color: var(--primary-hover);
+    color: var(--secondary-color);
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+button:hover {
+    background-color: var(--accent-color);
+    color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+/* Forms */
+form {
+    background-color: var(--bg-light);
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+}
+
+form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+form input,
+form select,
+form textarea {
+    width: 100%;
+    padding: 0.8rem;
+    margin-bottom: var(--spacing);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--bg-dark);
+    color: var(--text-color);
+    transition: var(--transition);
+}
+
+form input:focus,
+form select:focus,
+form textarea:focus {
+    border-color: var(--accent-color);
+    outline: none;
+}
+
+/* Cards */
+.card {
+    background-color: var(--bg-light);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: var(--spacing);
+    margin-bottom: var(--spacing);
+    color: var(--primary-color);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.card:hover {
+    background-color: var(--accent-color);
+    color: var(--primary-color);
+    transform: translateY(-5px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}

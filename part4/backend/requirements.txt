@@ -1,0 +1,7 @@
+flask
+flask-restx
+flask-bcrypt
+PyJWT==2.8.0
+flask-jwt-extended
+sqlalchemy
+flask-sqlalchemy

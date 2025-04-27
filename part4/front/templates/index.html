@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HBNB - Explore Places</title>
+    <link rel="stylesheet" href="../styles.css">
+</head>
+
+<body>
+    <header>
+        <img src="../style/logo.png" alt="HBNB Logo" class="brand-logo">
+        <nav class="navigation">
+            <a href="index.html">Home</a>
+            <a href="login.html">Sign In</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="filter-section">
+            <label for="price">Filter by Price:</label>
+            <select id="price">
+                <option value="all">All</option>
+                <option value="10">Under $10</option>
+                <option value="20">Under $20</option>
+                <option value="50">Under $50</option>
+                <option value="100">Under $100</option>
+                <option value="200">Under $200</option>
+            </select>
+        </section>
+
+        <section id="places-list" class="places-container">
+            <!-- Dynamic content will load here -->
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2025 HBNB. All rights reserved.</p>
+    </footer>
+
+    <script src="../style/scripts.js"></script>
+</body>
+
+</html>
